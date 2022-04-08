@@ -80,7 +80,7 @@ main (int argc, char *argv[])
   // LogComponentEnable ("Pool", LOG_LEVEL_ALL);
   uint32_t nLeaf = 1;
   std::string transport_prot = "ns3::TcpRlTimeBased";
-  double error_p = 0.0;
+  double error_p = 1.0;
   std::string bottleneck_bandwidth = "2Mbps";
   std::string bottleneck_delay = "0.01ms";
   std::string access_bandwidth = "10Mbps";
@@ -127,7 +127,7 @@ main (int argc, char *argv[])
 
   NS_LOG_UNCOND ("--seed: " << run);
   NS_LOG_UNCOND ("--Tcp version: " << transport_prot);
-
+  NS_LOG_UNCOND("Numair was here" << error_p);
   //   // OpenGym Env --- has to be created before any other thing
   //   Ptr<OpenGymInterface> openGymInterface;
   //   if (transport_prot.compare ("ns3::TcpRl") == 0)

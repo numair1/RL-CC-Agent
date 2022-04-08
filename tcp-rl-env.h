@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author: Piotr Gawlowicz <gawlowicz@tkn.tu-berlin.de>
- * Modify: Pengyu Liu <eic_lpy@hust.edu.cn> 
+ * Modify: Pengyu Liu <eic_lpy@hust.edu.cn>
  *         Hao Yin <haoyin@uw.edu>
  */
 
@@ -38,6 +38,7 @@ struct sTcpRlEnv
   uint32_t segmentSize;
   uint32_t segmentsAcked;
   uint32_t bytesInFlight;
+  float_t throughput;
   //   int64_t rtt;
   //   int64_t minRtt;
   //   uint32_t calledFunc;

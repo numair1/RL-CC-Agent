@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Author: Piotr Gawlowicz <gawlowicz@tkn.tu-berlin.de>
- * Modify: Pengyu Liu <eic_lpy@hust.edu.cn> 
+ * Modify: Pengyu Liu <eic_lpy@hust.edu.cn>
  *         Hao Yin <haoyin@uw.edu>
  */
 
@@ -96,7 +96,10 @@ void TcpTimeStepEnv::ScheduleNextStateRead()
 
   uint64_t segmentsAckedSum = std::accumulate(m_segmentsAcked.begin(), m_segmentsAcked.end(), 0);
   env->segmentsAcked = segmentsAckedSum;
+
   m_segmentsAcked.clear();
+  float throughput_l = (segmentsAckedSum * m_tcb->m_segmentSize) / m_timeStep.GetSeconds();
+  env->throughput = throughput_l;
   std::cerr << (uint64_t)(Simulator::Now().GetMilliSeconds()) << "  " << env->ssThresh << "  "
             << env->cWnd << "  " << env->segmentSize << "  " << bytesInFlightSum << std::endl;
   SetCompleted();

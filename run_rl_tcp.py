@@ -47,6 +47,7 @@ class TcpRlEnv(Structure):
         ('segmentSize', c_uint32),
         ('segmentsAcked', c_uint32),
         ('bytesInFlight', c_uint32),
+        ('throughput', c_float)
     ]
 
 
@@ -129,7 +130,7 @@ class DQN(object):
 Init(1234, 4096)
 var = Ns3AIRL(1234, TcpRlEnv, TcpRlAct)
 res_list = ['ssThresh_l', 'cWnd_l', 'segmentsAcked_l',
-            'segmentSize_l', 'bytesInFlight_l']
+            'segmentSize_l', 'bytesInFlight_l', 'throughput_l']
 args = parser.parse_args()
 
 if args.result:
@@ -141,7 +142,9 @@ if args.result:
 
 if args.use_rl:
     dqn = DQN()
+r_list = []
 exp = Experiment(1234, 4096, 'rl-tcp', '../../')
+#ns3Settings = {'error_p': 1.0}
 exp.run(show_output=1)
 try:
     while not var.isFinish():
@@ -154,8 +157,10 @@ try:
             segmentsAcked = data.env.segmentsAcked
             segmentSize = data.env.segmentSize
             bytesInFlight = data.env.bytesInFlight
-    #         print(ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight)
-
+            print("--------------------------------------------------------")
+            print("Epoch Stats")
+            print(ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight)
+            print(data.env.throughput)
             if args.result:
                 for res in res_list:
                     globals()[res].append(globals()[res[:-2]])
@@ -177,7 +182,7 @@ try:
                         new_cWnd = cWnd + adder
                 # GetSsThresh
                 new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-                data.act.new_cWnd = new_cWnd
+                data.act.new_cWnd = 100000
                 data.act.new_ssThresh = new_ssThresh
             else:
                 s = [ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight]
@@ -191,17 +196,22 @@ try:
                     new_ssThresh = 2 * segmentSize
                 else:
                     new_ssThresh = int(bytesInFlight / 2)
+                print("Expoch Actions")
+                print('newCwnd',new_cWnd)
+                print('new_ssThresh', new_ssThresh)
                 data.act.new_cWnd = new_cWnd
                 data.act.new_ssThresh = new_ssThresh
-
                 ssThresh = data.env.ssThresh
                 cWnd = data.env.cWnd
                 segmentsAcked = data.env.segmentsAcked
                 segmentSize = data.env.segmentSize
                 bytesInFlight = data.env.bytesInFlight
-
+                print('Result of Action')
+                print(ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight)
+                print('--------------------------------------------------------')
                 # modify the reward
                 r = segmentsAcked - bytesInFlight - cWnd
+                r_list.append(r)
                 s_ = [ssThresh, cWnd, segmentsAcked,
                       segmentSize, bytesInFlight]
 
@@ -214,6 +224,13 @@ except KeyboardInterrupt:
     del exp
 
 if args.result:
+    y = r_list
+    x = range(len(y))
+    plt.clf()
+    plt.plot(x, y, label=res[:-2], linewidth=1, color='r')
+    plt.xlabel('Step Number')
+    plt.title('Information of Reward')
+    plt.savefig('{}.png'.format(os.path.join(args.output_dir, 'reward')))
     for res in res_list:
         y = globals()[res]
         x = range(len(y))
