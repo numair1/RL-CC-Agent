@@ -39,7 +39,7 @@ struct sTcpRlEnv
   uint32_t segmentsAcked;
   uint32_t bytesInFlight;
   float_t throughput;
-  //   int64_t rtt;
+  int64_t rtt;
   //   int64_t minRtt;
   //   uint32_t calledFunc;
   //   uint32_t congState;
@@ -94,6 +94,37 @@ protected:
   uint32_t m_new_cWnd;
 };
 
+class TcpTimeStepEnv : public TcpRlEnv
+{
+public:
+  TcpTimeStepEnv () = delete;
+  TcpTimeStepEnv (uint16_t id);
+  // trace packets, e.g. for calculating inter tx/rx time
+  //   virtual void TxPktTrace(Ptr<const Packet>, const TcpHeader&, Ptr<const TcpSocketBase>);
+  //   virtual void RxPktTrace(Ptr<const Packet>, const TcpHeader&, Ptr<const TcpSocketBase>);
+
+  // TCP congestion control interface
+  virtual uint32_t GetSsThresh (Ptr<const TcpSocketState> tcb, uint32_t bytesInFlight);
+  virtual void IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked);
+  // optional functions used to collect obs
+  virtual void PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked, const Time &rtt);
+  virtual void CongestionStateSet (Ptr<TcpSocketState> tcb,
+                                   const TcpSocketState::TcpCongState_t newState);
+  virtual void CwndEvent (Ptr<TcpSocketState> tcb, const TcpSocketState::TcpCAEvent_t event);
+
+private:
+  void ScheduleNextStateRead ();
+  bool m_started{false};
+  Time m_timeStep{MilliSeconds(10)};
+  // state
+  Ptr<const TcpSocketState> m_tcb;
+  std::vector<uint32_t> m_bytesInFlight;
+  std::vector<uint32_t> m_segmentsAcked;
+
+  uint64_t m_rttSampleNum{0};
+  Time m_rttSum{MicroSeconds (0.0)};
+};
+
 // class TcpEventEnv : public TcpRlEnv
 // {
 // public:
@@ -125,36 +156,5 @@ protected:
 //   float m_reward;
 //   float m_penalty;
 // };
-
-class TcpTimeStepEnv : public TcpRlEnv
-{
-public:
-  TcpTimeStepEnv () = delete;
-  TcpTimeStepEnv (uint16_t id);
-  // trace packets, e.g. for calculating inter tx/rx time
-  //   virtual void TxPktTrace(Ptr<const Packet>, const TcpHeader&, Ptr<const TcpSocketBase>);
-  //   virtual void RxPktTrace(Ptr<const Packet>, const TcpHeader&, Ptr<const TcpSocketBase>);
-
-  // TCP congestion control interface
-  virtual uint32_t GetSsThresh (Ptr<const TcpSocketState> tcb, uint32_t bytesInFlight);
-  virtual void IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked);
-  // optional functions used to collect obs
-  virtual void PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked, const Time &rtt);
-  virtual void CongestionStateSet (Ptr<TcpSocketState> tcb,
-                                   const TcpSocketState::TcpCongState_t newState);
-  virtual void CwndEvent (Ptr<TcpSocketState> tcb, const TcpSocketState::TcpCAEvent_t event);
-
-private:
-  void ScheduleNextStateRead ();
-  bool m_started{false};
-  Time m_timeStep{MilliSeconds(10)};
-  // state
-  Ptr<const TcpSocketState> m_tcb;
-  std::vector<uint32_t> m_bytesInFlight;
-  std::vector<uint32_t> m_segmentsAcked;
-
-  uint64_t m_rttSampleNum{0};
-  Time m_rttSum{MicroSeconds (0.0)};
-};
 
 } // namespace ns3

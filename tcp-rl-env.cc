@@ -100,6 +100,12 @@ void TcpTimeStepEnv::ScheduleNextStateRead()
   m_segmentsAcked.clear();
   float throughput_l = (segmentsAckedSum * m_tcb->m_segmentSize) / m_timeStep.GetSeconds();
   env->throughput = throughput_l;
+
+  Time avgRtt = Seconds (0.0);
+  if (m_rttSampleNum)
+    avgRtt = m_rttSum / m_rttSampleNum;
+  env->rtt = avgRtt.GetMicroSeconds ();
+  
   std::cerr << (uint64_t)(Simulator::Now().GetMilliSeconds()) << "  " << env->ssThresh << "  "
             << env->cWnd << "  " << env->segmentSize << "  " << bytesInFlightSum << std::endl;
   SetCompleted();
@@ -118,10 +124,7 @@ void TcpTimeStepEnv::ScheduleNextStateRead()
 
   m_interRxTimeNum = 0;
   m_interRxTimeSum = MicroSeconds(0.0);
-  //   Time avgRtt = Seconds (0.0);
-  //   if (m_rttSampleNum)
-  //     avgRtt = m_rttSum / m_rttSampleNum;
-  //   env->rtt = avgRtt.GetMicroSeconds ();
+
 
   //   env->minRtt = m_tcb->m_minRtt.GetMicroSeconds ();
   //   env->calledFunc = m_calledFunc;

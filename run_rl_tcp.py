@@ -47,7 +47,8 @@ class TcpRlEnv(Structure):
         ('segmentSize', c_uint32),
         ('segmentsAcked', c_uint32),
         ('bytesInFlight', c_uint32),
-        ('throughput', c_float)
+        ('throughput', c_float),
+		('rtt', c_int64)
     ]
 
 
