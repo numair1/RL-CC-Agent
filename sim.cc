@@ -17,7 +17,7 @@
  *
  * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
  * Based on script: ./examples/tcp/tcp-variants-comparison.cc
- * Modify: Pengyu Liu <eic_lpy@hust.edu.cn> 
+ * Modify: Pengyu Liu <eic_lpy@hust.edu.cn>
  *         Hao Yin <haoyin@uw.edu>
  * Topology:
  *
@@ -27,7 +27,7 @@
  *           |              R0--------------R1          |
  *           |             /                  \         |
  *           |   access   /                    \ access |
- *  
+ *
  */
 
 #include <iostream>
@@ -88,7 +88,7 @@ main (int argc, char *argv[])
   std::string prefix_file_name = "TcpVariantsComparison";
   uint64_t data_mbytes = 0;
   uint32_t mtu_bytes = 400;
-  double duration = 1000.0;
+  double duration = 10.0;
   uint32_t run = 0;
   bool flow_monitor = false;
   bool sack = true;
