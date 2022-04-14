@@ -102,10 +102,13 @@ void TcpTimeStepEnv::ScheduleNextStateRead()
   env->throughput = throughput_l;
 
   Time avgRtt = Seconds (0.0);
-  if (m_rttSampleNum)
+  if (m_rttSampleNum) {
     avgRtt = m_rttSum / m_rttSampleNum;
-  env->rtt = avgRtt.GetMicroSeconds ();
-  
+    env->rtt = avgRtt.GetMicroSeconds ();
+  } else {
+    env->rtt = -1;
+  }
+
   std::cerr << (uint64_t)(Simulator::Now().GetMilliSeconds()) << "  " << env->ssThresh << "  "
             << env->cWnd << "  " << env->segmentSize << "  " << bytesInFlightSum << std::endl;
   SetCompleted();
