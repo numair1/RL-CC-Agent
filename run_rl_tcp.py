@@ -84,7 +84,7 @@ class DQN(object):
 		self.observer_shape = 7
 		self.target_replace = 100
 		self.memory_counter = 0
-		self.memory_capacity = 2000
+		self.memory_capacity = 1000
 		self.memory = np.zeros((2000, 2*7+2))	# s, a, r, s'
 		self.optimizer = torch.optim.Adam(
 			self.eval_net.parameters(), lr=0.0001)
@@ -145,7 +145,7 @@ if args.use_rl:
 r_list = []
 exp = Experiment(1234, 4096, 'rl-tcp', '../../')
 try:
-	for i in range(3):
+	for i in range(100):
 		print(i)
 		exp.reset()
 		Init(1234, 4096)
@@ -164,10 +164,6 @@ try:
 				bytesInFlight = data.env.bytesInFlight
 				throughput = data.env.throughput
 				rtt = data.env.rtt
-				print("--------------------------------------------------------")
-				print("Epoch Stats")
-				print(ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight, throughput, rtt)
-				print(data.env.throughput)
 				if args.result:
 					for res in res_list:
 						globals()[res].append(globals()[res[:-2]])
@@ -218,23 +214,16 @@ try:
 					bytesInFlight = data.env.bytesInFlight
 					throughput = data.env.throughput
 					rtt = data.env.rtt
-					print('Result of Action')
-					print(ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight)
-					print('--------------------------------------------------------')
 					# modify the reward
 					# r = segmentsAcked - bytesInFlight - cWnd
-					if rtt <= 0:
+					if rtt > 0:
 						r = throughput / rtt
 						r_list.append(r)
 						s_ = [ssThresh, cWnd, segmentsAcked,
 							  segmentSize, bytesInFlight, throughput, rtt]
-
 						dqn.store_transition(s, a, r, s_)
-
 					if dqn.memory_counter > dqn.memory_capacity:
-						print("hello world")
 						dqn.learn()
-						print("hello world 2")
 		pro.wait()
 except KeyboardInterrupt:
 	exp.kill()
