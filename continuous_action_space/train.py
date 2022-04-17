@@ -63,6 +63,10 @@ class Trainer:
 		state = Variable(torch.from_numpy(state))
 		action = self.actor.forward(state).detach()
 		new_action = action.data.numpy() + (self.noise.sample() * self.action_lim)
+		if new_action < -2:
+			new_action = np.asarray([-2])
+		elif new_action > 2:
+			new_action = np.asarray([2])
 		return new_action
 
 	def optimize(self):
@@ -85,6 +89,7 @@ class Trainer:
 		y_expected = r1 + GAMMA*next_val
 		# y_pred = Q( s1, a1)
 		y_predicted = torch.squeeze(self.critic.forward(s1, a1))
+		y_predicted = torch.reshape(y_predicted, (-1,))
 		# compute critic loss, and update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
 		self.critic_optimizer.zero_grad()

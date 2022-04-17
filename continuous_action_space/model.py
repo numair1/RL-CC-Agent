@@ -94,11 +94,8 @@ class Actor(nn.Module):
 		x = F.relu(self.fc1(state))
 		x = F.relu(self.fc2(x))
 		x = F.relu(self.fc3(x))
-		action = F.tanh(self.fc4(x))
+		action = torch.tanh(self.fc4(x))
 
 		action = action * self.action_lim
 
 		return action
-
-
-
