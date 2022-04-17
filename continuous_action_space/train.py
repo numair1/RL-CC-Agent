@@ -64,9 +64,9 @@ class Trainer:
 		action = self.actor.forward(state).detach()
 		new_action = action.data.numpy() + (self.noise.sample() * self.action_lim)
 		if new_action < -2:
-			new_action = np.asarray([-2])
+			new_action = np.asarray([-2.0])
 		elif new_action > 2:
-			new_action = np.asarray([2])
+			new_action = np.asarray([2.0])
 		return new_action
 
 	def optimize(self):
