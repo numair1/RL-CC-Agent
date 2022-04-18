@@ -13,6 +13,7 @@ import argparse
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import RL_env_setup_continuous as rlesc
+import normalizer
 
 # Parse relevant command line arguments
 parser = argparse.ArgumentParser()
@@ -33,7 +34,7 @@ if args.result:
 			os.mkdir(args.output_dir)
 
 # Set up parameters for NN training
-MAX_EPISODES = 5000
+MAX_EPISODES = 1
 MAX_STEPS = 1000
 MAX_BUFFER = 1000000
 MAX_TOTAL_REWARD = 300
@@ -52,6 +53,7 @@ exp.run(show_output=0)
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
 r_list = []
+standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(MAX_EPISODES):
 		print("EPISODE: ", i)
@@ -78,6 +80,9 @@ try:
 				rtt = data.env.rtt
 				new_observation = [ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight,
 										throughput, rtt]
+				standardizer.observe(new_observation)
+				new_observation = standardizer.normalize(new_observation)
+				print(new_observation)
 				if to_store and rtt > 0:
 					reward = throughput / rtt
 					print("REWARD: ", reward)
@@ -116,8 +121,7 @@ try:
 					data.act.new_ssThresh = new_ssThresh
 					to_store = False
 				else:
-					observation = [ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight,\
-												throughput, rtt]
+					observation = new_observation
 					state = np.float32(observation)
 					action = trainer.get_exploration_action(state)
 					print('Action:' , action)
