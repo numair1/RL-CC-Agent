@@ -1,47 +1,28 @@
-from __future__ import division
 import numpy as np
-import torch
-from torch.autograd import Variable
-import os
-import psutil
 import gc
 import train
 import buffer
 from py_interface import *
-from ctypes import *
 import argparse
-import torch.nn as nn
-import matplotlib.pyplot as plt
 import RL_env_setup_continuous as rlesc
 import normalizer
+import utils
+import graph
 
 # Parse relevant command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--result', action='store_true',
-					help='whether output figures')
-parser.add_argument('--output_dir', type=str,
-					default='./result', help='output figures path')
-parser.add_argument('--use_rl', action='store_true',
-					help='whether use rl algorithm')
+parser.add_argument('--result', action='store_true', help='whether output figures')
 args = parser.parse_args()
 
-# Set up logging and saving
-if args.result:
-	for res in res_list:
-		globals()[res] = []
-	if args.output_dir:
-		if not os.path.exists(args.output_dir):
-			os.mkdir(args.output_dir)
-
 # Set up parameters for NN training
-MAX_EPISODES = 1
+MAX_EPISODES = 10
 MAX_STEPS = 1000
 MAX_BUFFER = 1000000
 MAX_TOTAL_REWARD = 300
 # Connect the relevant variables here
-S_DIM = 7
+S_DIM = 5
 A_DIM = 1
-A_MAX = 1.8
+A_MAX = 2
 
 print(' State Dimensions :- ', S_DIM)
 print(' Action Dimensions :- ', A_DIM)
@@ -52,7 +33,9 @@ exp.run(show_output=0)
 # Initialize trainer and momery replay
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
-r_list = []
+avg_rewards = []  # a list of average reward per episode
+throughputs = []  # a list of throughputs
+actions = []
 standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(MAX_EPISODES):
@@ -62,96 +45,67 @@ try:
 		var = Ns3AIRL(1234, rlesc.TcpRlEnv, rlesc.TcpRlAct)
 		#ns3Settings = {'error_p': 1.0}
 		pro = exp.run(show_output=False)
-		to_store = False
 		observation = []
 		state = []
+		reward_counter = 0  # used to calculate average reward
+		reward_sum = 0.0
 		while not var.isFinish():
 			with var as data:
 				if not data:
 					break
-				#print('EPISODE :- ', _ep)
-				simTime_us = data.env.simTime_us
-				ssThresh = data.env.ssThresh
-				cWnd = data.env.cWnd
-				segmentsAcked = data.env.segmentsAcked
-				segmentSize = data.env.segmentSize
-				bytesInFlight = data.env.bytesInFlight
-				throughput = data.env.throughput
-				rtt = data.env.rtt
-				new_observation = [ssThresh, cWnd, segmentsAcked, segmentSize, bytesInFlight,
-										throughput, rtt]
-				standardizer.observe(new_observation)
-				new_observation = standardizer.normalize(new_observation)
-				print(new_observation)
-				if to_store and rtt > 0:
-					reward = throughput / rtt
-					print("REWARD: ", reward)
-					r_list.append(reward)
-					new_state = np.float32(new_observation)
-					# push this exp in ram
-					print('------------------------------------')
-					print('State')
-					print(state)
-					print('New State')
-					print(new_state)
-					print('------------------------------------')
-					ram.add(state, action, reward, new_state)
-					trainer.optimize()
-				if args.result:
-					for res in res_list:
-						globals()[res].append(globals()[res[:-2]])
+				# these 2 are unused by our RLL algorithm but used for TCP
+				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
-				if rtt <= 0 or not args.use_rl:
-					new_cWnd = 1
-					new_ssThresh = 1
-					# IncreaseWindow
-					if (cWnd < ssThresh):
-						# slow start
-						if (segmentsAcked >= 1):
-							new_cWnd = cWnd + segmentSize
-					if (cWnd >= ssThresh):
-						# congestion avoidance
-						if (segmentsAcked > 0):
-							adder = 1.0 * (segmentSize * segmentSize) / cWnd
-							adder = int(max(1.0, adder))
-							new_cWnd = cWnd + adder
-					# GetSsThresh
-					new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-					data.act.new_cWnd = new_cWnd
-					data.act.new_ssThresh = new_ssThresh
-					to_store = False
+				# these 5 are used by our RLL algorithm
+				cWnd, segmentsAcked, bytesInFlight, throughput, rtt = \
+				data.env.cWnd, data.env.segmentsAcked, data.env.bytesInFlight, data.env.throughput, data.env.rtt
+
+				throughputs.append(throughput)
+				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
+				standardizer.observe(observation)
+				standardized_observation = standardizer.normalize(observation)
+
+				if rtt <= 0:
+					standardized_observation[-1] = 50.0  # some very large rtt (standardized)
+					reward = 0.0
 				else:
-					observation = new_observation
-					state = np.float32(observation)
-					action = trainer.get_exploration_action(state)
-					print('Action:' , action)
-					print(int((2**action)*cWnd))
-					data.act.new_cWnd = int((2**action)*cWnd)
-					data.act.new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-					to_store = True
+					reward = throughput / rtt
+
+				standardizer.observe_reward(reward)
+				standardized_reward = standardizer.normalize_reward(reward)
+
+				print("STANDARDIZED REWARD: ", standardized_reward)
+				reward_counter += 1
+				reward_sum += standardized_reward
+				new_state = np.float32(standardized_observation)
+				if len(state) != 0:  # len(state) == 0 on first iteration of while loop
+					ram.add(state, action, standardized_reward, new_state)
+					trainer.optimize()
+				print('------------------------------------')
+				print('State')
+				print(state)
+				print('New State')
+				print(new_state)
+				print('------------------------------------')
+
+				state = new_state
+				action = trainer.get_exploration_action(state)
+				actions.append(actions)
+				new_cWnd = int((2**action)*cWnd)
+				new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
+				print('Action:' , action)
+				print('new_cwnd:', new_cWnd)
+				data.act.new_cWnd = new_cWnd
+				data.act.new_ssThresh = new_ssThresh
+
+		avg_rewards.append(reward_sum / reward_counter)
 		# check memory consumption and clear memory
 		gc.collect()
-		# process = psutil.Process(os.getpid())
-		# print(process.memory_info().rss)
-		#if _ep%100 == 0:
-		#	trainer.save_models(_ep)
 except KeyboardInterrupt:
 	exp.kill()
 	del exp
 if args.result:
-	y = r_list
-	x = range(len(y))
-	plt.clf()
-	plt.plot(x, y, label=res[:-2], linewidth=1, color='r')
-	plt.xlabel('Step Number')
-	plt.title('Information of Reward')
-	plt.savefig('{}.png'.format(os.path.join(args.output_dir, 'reward')))
-	for res in res_list:
-		y = globals()[res]
-		x = range(len(y))
-		plt.clf()
-		plt.plot(x, y, label=res[:-2], linewidth=1, color='r')
-		plt.xlabel('Step Number')
-		plt.title('Information of {}'.format(res[:-2]))
-		plt.savefig('{}.png'.format(os.path.join(args.output_dir, res[:-2])))
+	graph.graph_avg_rewards(avg_rewards)
+	graph.graph_throughputs(throughputs)
+	graph.graph_actions(actions)
 print('Completed episodes')

@@ -3,6 +3,15 @@ import torch
 import shutil
 import torch.autograd as Variable
 
+def TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight):
+	if (cWnd < ssThresh) and (segmentsAcked >= 1): # slow start
+		new_cWnd = cWnd + segmentSize
+	if (cWnd >= ssThresh) and (segmentsAcked > 0): # congestion avoidance
+		new_cWnd = cWnd + max(1.0, float(segmentSize * segmentSize) / cWnd)
+	else:
+		new_cWnd = 1
+	new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
+	return new_cWnd, new_ssThresh
 
 def soft_update(target, source, tau):
 	"""
