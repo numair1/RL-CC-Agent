@@ -64,16 +64,18 @@ try:
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 				standardizer.observe(observation)
 				standardized_observation = standardizer.normalize(observation)
-
 				if rtt <= 0:
+					print("IF BRANCH")
 					standardized_observation[-1] = 50.0  # some very large rtt (standardized)
-					reward = 0.0
+					reward = -10.0
 				else:
+					print("ELSE BRANCH")
 					reward = throughput / rtt
 
 				standardizer.observe_reward(reward)
 				standardized_reward = standardizer.normalize_reward(reward)
 
+				print("RAW REWARD: ", reward)
 				print("STANDARDIZED REWARD: ", standardized_reward)
 				reward_counter += 1
 				reward_sum += standardized_reward
@@ -82,6 +84,8 @@ try:
 					ram.add(state, action, standardized_reward, new_state)
 					trainer.optimize()
 				print('------------------------------------')
+				print('Raw Observation')
+				print(observation)
 				print('State')
 				print(state)
 				print('New State')
@@ -90,11 +94,14 @@ try:
 
 				state = new_state
 				action = trainer.get_exploration_action(state)
-				actions.append(actions)
+				actions.append(action)
 				new_cWnd = int((2**action)*cWnd)
 				new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
+				if reward_counter == 5:
+					new_cWnd = 4294967298
 				print('Action:' , action)
 				print('new_cwnd:', new_cWnd)
+
 				data.act.new_cWnd = new_cWnd
 				data.act.new_ssThresh = new_ssThresh
 
