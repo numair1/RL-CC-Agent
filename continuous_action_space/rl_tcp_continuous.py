@@ -64,10 +64,10 @@ try:
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 				standardizer.observe(observation)
 				standardized_observation = standardizer.normalize(observation)
-				if rtt <= 0:
+				if throughput <= 0:
 					print("IF BRANCH")
-					standardized_observation[-1] = 50.0  # some very large rtt (standardized)
-					reward = -10.0
+					standardized_observation[-1] = 50.0  # some very large rtt
+					reward = -standardized_observation[0]  # cWnd
 				else:
 					print("ELSE BRANCH")
 					reward = throughput / rtt
@@ -97,10 +97,12 @@ try:
 				actions.append(action)
 				new_cWnd = int((2**action)*cWnd)
 				new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-				if reward_counter == 5:
-					new_cWnd = 4294967298
+				if new_cWnd >= 1e8:  # 100 million. 100,000,000
+					print("BREAKING")
+					break
+
 				print('Action:' , action)
-				print('new_cwnd:', new_cWnd)
+				print('new_cwnd:', new_cWnd, '\n')
 
 				data.act.new_cWnd = new_cWnd
 				data.act.new_ssThresh = new_ssThresh
