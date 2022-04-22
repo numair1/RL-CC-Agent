@@ -9,6 +9,7 @@ import normalizer
 import utils
 import graph
 import math
+import rl_tcp_continuous
 
 # Parse relevant command line arguments
 parser = argparse.ArgumentParser()
@@ -16,10 +17,8 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 5
-MAX_STEPS = 1000
+NUM_EPISODES = 5
 MAX_BUFFER = 1000000
-MAX_TOTAL_REWARD = 300
 # Connect the relevant variables here
 S_DIM = 5
 A_DIM = 1
@@ -34,13 +33,14 @@ exp.run(show_output=0)
 # Initialize trainer and momery replay
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
+trainer.load_models(MAX_EPISODES)
 
 avg_rewards = []  # a list of average reward per episode
 throughputs = []  # a list of throughputs
 actions = []
 standardizer = normalizer.Normalizer(S_DIM)
 try:
-	for i in range(MAX_EPISODES):
+	for i in range(NUM_EPISODES):
 		print("EPISODE: ", i)
 		exp.reset()
 		Init(1234, 4096)
