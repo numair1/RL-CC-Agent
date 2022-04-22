@@ -10,7 +10,7 @@ import math
 import utils
 import model
 
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 LEARNING_RATE = 0.001
 GAMMA = 0.99
 TAU = 0.001

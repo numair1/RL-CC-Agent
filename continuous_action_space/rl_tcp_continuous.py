@@ -16,9 +16,9 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 5
+MAX_EPISODES = 100
 MAX_STEPS = 1000
-MAX_BUFFER = 1000000
+MAX_BUFFER = 100000
 MAX_TOTAL_REWARD = 300
 # Connect the relevant variables here
 S_DIM = 5
@@ -88,7 +88,8 @@ try:
 						action = math.log2(observation[0] / unnormalized_state[0])
 						action = np.asarray([action])
 					ram.add(state, action, standardized_reward, new_state)
-					trainer.optimize()
+					if ram.len > 512:
+						trainer.optimize()
 				print('------------------------------------')
 				print('Raw Observation')
 				print(observation)

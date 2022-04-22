@@ -115,7 +115,7 @@ public:
 private:
   void ScheduleNextStateRead ();
   bool m_started{false};
-  Time m_timeStep{MilliSeconds(1)};
+  Time m_timeStep{MilliSeconds(10)};
   // state
   Ptr<const TcpSocketState> m_tcb;
   std::vector<uint32_t> m_bytesInFlight;
