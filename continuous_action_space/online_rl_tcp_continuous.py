@@ -9,7 +9,7 @@ import normalizer
 import utils
 import graph
 import math
-import rl_tcp_continuous
+# import rl_tcp_continuous
 
 # Parse relevant command line arguments
 parser = argparse.ArgumentParser()
@@ -33,7 +33,7 @@ exp.run(show_output=0)
 # Initialize trainer and momery replay
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
-trainer.load_models(MAX_EPISODES)
+trainer.load_models(5)
 
 avg_rewards = []  # a list of average reward per episode
 throughputs = []  # a list of throughputs
@@ -52,10 +52,12 @@ try:
 		reward_counter = 0  # used to calculate average reward
 		reward_sum = 0.0
 		unnormalized_state = []
+		j = 0
 		while not var.isFinish():
 			with var as data:
 				if not data:
 					break
+				j += 1
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
@@ -63,8 +65,19 @@ try:
 				cWnd, segmentsAcked, bytesInFlight, throughput, rtt = \
 				data.env.cWnd, data.env.segmentsAcked, data.env.bytesInFlight, data.env.throughput, data.env.rtt
 
-				throughputs.append(throughput)
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
+
+				if j % 10 != 0 and j > 20:  # TCP is supposed to act
+					if throughput != 0:
+						print("TCP AGENT ACTED")
+						new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
+						throughputs.append(throughput)
+						actions.append(new_cWnd)
+						data.act.new_cWnd = new_cWnd
+						data.act.new_ssThresh = new_ssThresh
+					continue
+
+				throughputs.append(throughput)
 				standardizer.observe(observation)
 				standardized_observation = standardizer.normalize(observation)
 				if throughput == 0:
@@ -108,7 +121,7 @@ try:
 					print("BREAKING")
 					break
 
-				print('Action:' , action)
+				print('AGENT ACTION:' , action)
 				print('new_cwnd:', new_cWnd, '\n')
 
 				data.act.new_cWnd = new_cWnd
@@ -117,7 +130,6 @@ try:
 		avg_rewards.append(reward_sum / reward_counter)
 		# check memory consumption and clear memory
 		gc.collect()
-	trainer.save_models(MAX_EPISODES)
 except KeyboardInterrupt:
 	exp.kill()
 	del exp
