@@ -18,7 +18,7 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 150
+MAX_EPISODES = 99
 MAX_STEPS = 1000
 MAX_BUFFER = 100000
 MAX_TOTAL_REWARD = 300
@@ -80,7 +80,7 @@ try:
 				if throughput == 0:
 					print("IF BRANCH")
 					standardized_observation[-1] = 50.0  # some very large rtt
-					reward = -observation[0]/100000  # cWnd
+					reward = -observation[0]  # cWnd
 				else:
 					print("ELSE BRANCH")
 					reward = throughput / rtt
