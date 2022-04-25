@@ -2,7 +2,7 @@
 
 ## Objective
 
-- Apply RL algorithm to TCP congestion control, for real-time changes in the environment of network transmission, by strengthening the learning management sliding window and threshold size, the network can get better throughputs and smaller delay.
+- Apply RL (reinforcement learning) algorithm to TCP congestion control, for real-time changes in the environment of network transmission, by strengthening the learning management sliding window and threshold size, the network can get better throughputs and smaller delay.
 
 - Test the data interaction functions and the performance of ns-3-AI module.
 
@@ -107,15 +107,3 @@ python  side：
  data.act.new_cWnd = new_cWnd
  data.act.new_ssThresh = new_ssThresh
 ```
-
-
-
-## Build and Run
-
-Run code:
-```
-cd contrib/ns3-ai/example/rl-tcp/
-
-python3 run_tcp_rl.py --use_rl --result
-```
-
