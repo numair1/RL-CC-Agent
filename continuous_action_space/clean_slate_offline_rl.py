@@ -15,7 +15,7 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 5
+MAX_EPISODES = 1
 MAX_STEPS = 1000
 MAX_BUFFER = 1000000
 MAX_TOTAL_REWARD = 300
@@ -33,9 +33,10 @@ exp.run(show_output=0)
 # Initialize trainer and momery replay
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
-trainer.load_models(5)
+trainer.load_models(100)
 
 throughputs = []  # a list of throughputs
+rtts = []
 standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(MAX_EPISODES):
@@ -46,13 +47,11 @@ try:
 		#ns3Settings = {'error_p': 1.0}
 		pro = exp.run(show_output=False)
 		cur_throughputs = []
-		j = 0
+		cur_rtts = []
 		while not var.isFinish():
 			with var as data:
 				if not data:
 					break
-				j += 1
-				print(j)
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
@@ -61,6 +60,8 @@ try:
 				data.env.cWnd, data.env.segmentsAcked, data.env.bytesInFlight, data.env.throughput, data.env.rtt
 
 				cur_throughputs.append(throughput)
+				if rtt > 0:
+					cur_rtts.append(rtt)
 
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 				standardizer.observe(observation)
@@ -81,12 +82,15 @@ try:
 		# check memory consumption and clear memory
 		gc.collect()
 		throughputs.append(cur_throughputs)
+		rtts.append(cur_rtts)
 except KeyboardInterrupt:
 	exp.kill()
 	del exp
 
 with open('./data/clean_slate/throughputs.pickle', 'wb') as fh:
     pkl.dump(throughputs, fh)
+with open('./data/clean_slate/rtts.pickle', 'wb') as fh:
+	pkl.dump(rtts, fh)
 
 if args.result:
 	graph.graph_avg_rewards(avg_rewards)

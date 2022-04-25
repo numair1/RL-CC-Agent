@@ -9,6 +9,7 @@ import normalizer
 import utils
 import graph
 import math
+import pickle as pkl
 # import rl_tcp_continuous
 
 # Parse relevant command line arguments
@@ -33,11 +34,13 @@ exp.run(show_output=0)
 # Initialize trainer and momery replay
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
-trainer.load_models(5)
+trainer.load_models(100)
 
 avg_rewards = []  # a list of average reward per episode
 throughputs = []  # a list of throughputs
 actions = []
+throughputs = []  # a list of throughputs
+rtts = []
 standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(NUM_EPISODES):
@@ -53,6 +56,8 @@ try:
 		reward_sum = 0.0
 		unnormalized_state = []
 		j = 0
+		cur_throughputs = []
+		cur_rtts = []
 		while not var.isFinish():
 			with var as data:
 				if not data:
@@ -69,7 +74,8 @@ try:
 
 				if j % 10 != 0 and j > 20:  # TCP is supposed to act
 					if throughput != 0:
-						print("TCP AGENT ACTED")
+						# print("TCP AGENT ACTED")
+						assert segmentsAcked > 0
 						new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
 						throughputs.append(throughput)
 						actions.append(new_cWnd)
@@ -81,18 +87,18 @@ try:
 				standardizer.observe(observation)
 				standardized_observation = standardizer.normalize(observation)
 				if throughput == 0:
-					print("IF BRANCH")
+					# print("IF BRANCH")
 					standardized_observation[-1] = 50.0  # some very large rtt
 					reward = -observation[0]  # cWnd
 				else:
-					print("ELSE BRANCH")
+					# print("ELSE BRANCH")
 					reward = throughput / rtt
 
 				standardizer.observe_reward(reward)
 				standardized_reward = standardizer.normalize_reward(reward)
 
-				print("RAW REWARD: ", reward)
-				print("STANDARDIZED REWARD: ", standardized_reward)
+				# print("RAW REWARD: ", reward)
+				# print("STANDARDIZED REWARD: ", standardized_reward)
 				reward_counter += 1
 				reward_sum += standardized_reward
 				new_state = np.float32(standardized_observation)
@@ -102,14 +108,14 @@ try:
 						action = np.asarray([action])
 					ram.add(state, action, standardized_reward, new_state)
 					trainer.optimize()
-				print('------------------------------------')
-				print('Raw Observation')
-				print(observation)
-				print('State')
-				print(state)
-				print('New State')
-				print(new_state)
-				print('------------------------------------')
+				# print('------------------------------------')
+				# print('Raw Observation')
+				# print(observation)
+				# print('State')
+				# print(state)
+				# print('New State')
+				# print(new_state)
+				# print('------------------------------------')
 
 				state = new_state
 				unnormalized_state = observation
@@ -117,12 +123,16 @@ try:
 				actions.append(action)
 				new_cWnd = int((2**action)*cWnd)
 				new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-				if new_cWnd >= 1e8:  # 100 million. 100,000,000
-					print("BREAKING")
-					break
+				# if new_cWnd >= 1e8:  # 100 million. 100,000,000
+				# 	print("BREAKING")
+				# 	break
 
-				print('AGENT ACTION:' , action)
-				print('new_cwnd:', new_cWnd, '\n')
+				# print('AGENT ACTION:' , action)
+				# print('new_cwnd:', new_cWnd, '\n')
+
+				cur_throughputs.append(throughput)
+				if rtt > 0:
+					cur_rtts.append(rtt)
 
 				data.act.new_cWnd = new_cWnd
 				data.act.new_ssThresh = new_ssThresh
@@ -130,9 +140,20 @@ try:
 		avg_rewards.append(reward_sum / reward_counter)
 		# check memory consumption and clear memory
 		gc.collect()
+		throughputs.append(cur_throughputs)
+		print(cur_rtts)
+		rtts.append(cur_rtts)
 except KeyboardInterrupt:
 	exp.kill()
 	del exp
+
+with open('./data/online/throughputs.pickle', 'wb') as fh:
+    pkl.dump(throughputs, fh)
+print(rtts)
+with open('./data/online/rtts.pickle', 'wb') as fh:
+    pkl.dump(rtts, fh)
+
+
 if args.result:
 	graph.graph_avg_rewards(avg_rewards)
 	graph.graph_throughputs(throughputs)

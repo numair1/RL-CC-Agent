@@ -11,7 +11,7 @@ def TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight):
 	else:
 		new_cWnd = 1
 	new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
-	return new_cWnd, new_ssThresh
+	return int(new_cWnd), new_ssThresh
 
 def soft_update(target, source, tau):
 	"""
