@@ -19,7 +19,7 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 3
+MAX_EPISODES = 100
 MAX_STEPS = 1000
 MAX_BUFFER = 100000
 MAX_TOTAL_REWARD = 300
@@ -57,9 +57,9 @@ try:
 		exp.reset()
 		Init(1234, 4096)
 		var = Ns3AIRL(1234, rlesc.TcpRlEnv, rlesc.TcpRlAct)
-		if i > 100:
-			ns3Settings = {'error_p': 1.0}
-			pro = exp.run(show_output=False)
+		if i > 89:
+			ns3Settings = {'bottleneck_bandwidth': "2Mbps", 'bottleneck_delay': "5ms"}
+			pro = exp.run(setting = ns3Settings, show_output=False)
 		else:
 			pro = exp.run(show_output=False)
 		observation = []
@@ -82,7 +82,6 @@ try:
 				if not data:
 					break
 				j += 1
-				print(j)
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
@@ -92,7 +91,7 @@ try:
 
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 
-				if i < 1:
+				if i <= 89:
 					throughputs.append(throughput)
 					curr_throughput.append(throughput)
 					standardizer.observe(observation)
@@ -112,7 +111,6 @@ try:
 					new_state = np.float32(standardized_observation)
 					if len(state) != 0:  # len(state) == 0 on first iteration of while loop
 						if new_cWnd != observation[0]:
-							assert observation[0] > 0 and unnormalized_state[0] > 0
 							action = math.log2(observation[0] / unnormalized_state[0])
 							action = np.asarray([action])
 						ram.add(state, action, standardized_reward, new_state)
@@ -130,7 +128,7 @@ try:
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
 
-				elif i >= 1 and i < 2: # clean slate
+				elif i > 89 and i < 95: # clean slate
 					cur_throughputs_clean.append(throughput)
 					if rtt > 0:
 						cur_rtts_clean.append(rtt)
@@ -149,8 +147,8 @@ try:
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
 
-				elif i >= 2 and i < 3:  # online
-					if j % 10 != 0 and j > 20:  # TCP is supposed to act
+				elif i >= 95:  # online
+					if j % 5 != 0 and j > 20:  # TCP is supposed to act
 						if throughput != 0:
 							assert segmentsAcked > 0
 							new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
@@ -195,10 +193,10 @@ try:
 
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
-		if i >= 1 and i < 2:
+		if i > 89 and i < 95:
 			throughputs_clean.append(cur_throughputs_clean)
 			rtts_clean.append(cur_rtts_clean)
-		elif i >= 2 and i < 3:
+		elif i >= 95:
 			throughputs_online.append(cur_throughputs_online)
 			rtts_online.append(cur_rtts_online)
 		# avg_rewards.append(reward_sum / reward_counter)
