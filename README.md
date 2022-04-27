@@ -35,4 +35,10 @@ python3 rl_tcp_continuous.py --result
 ```
 NOTE: This will take a while and there can be memlock issues becuase the ns3-ai simulator is buggy with shared memory usage.
 
-After the training loop is done, the necessary training graphs will be in the ./graphs folder. Now to generate the throughput vs delay graphs and compare with TCP, run the following code.
+After the training loop is done, the necessary training graphs will be in the ./graphs folder. Now to generate the throughput vs delay graphs and compare with TCP, run the following code:
+```
+python3 tcp.py
+python3 graph_throughputs.py
+```
+This will store the graph in the same ./graphs folder
+
