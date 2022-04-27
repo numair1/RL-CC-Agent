@@ -79,10 +79,10 @@ main (int argc, char *argv[])
 {
   // LogComponentEnable ("Pool", LOG_LEVEL_ALL);
   uint32_t nLeaf = 1;
-  std::string transport_prot = "ns3::TcpRlTimeBased";
+  std::string transport_prot = "ns3::TcpWestwoodPlus";
   double error_p = 0.0;
-  std::string bottleneck_bandwidth = "5Mbps";
-  std::string bottleneck_delay = "2ms";
+  std::string bottleneck_bandwidth = "2Mbps";
+  std::string bottleneck_delay = "5ms";
   std::string access_bandwidth = "20Mbps";
   std::string access_delay = "20ms";
   std::string prefix_file_name = "TcpVariantsComparison";

@@ -21,30 +21,40 @@ with open('./data/online/rtts.pickle', 'rb') as fh:
 	online_rtts = pkl.load(fh)
 
 def avg_jagged_2d_array(arr):
-	summ = 0
-	lenn = 0
+	summ = 0.0
+	lenn = 0.0
 	for lst in arr:
 		summ += sum(lst)
 		lenn += len(lst)
 	avg = summ / lenn
 	return avg
 
-tcp_throughputs_avg = avg_jagged_2d_array(tcp_throughputs)
-tcp_rtts_avg = avg_jagged_2d_array(tcp_rtts)
+tcp_throughputs_avg = avg_jagged_2d_array(tcp_throughputs) / 125000
+tcp_rtts_avg = avg_jagged_2d_array(tcp_rtts) / 1000
 
-clean_slate_throughputs_avg = avg_jagged_2d_array(clean_slate_throughputs)
-clean_slate_rtts_avg = avg_jagged_2d_array(clean_slate_rtts)
+clean_slate_throughputs_avg = avg_jagged_2d_array(clean_slate_throughputs) / 125000
+clean_slate_rtts_avg = avg_jagged_2d_array(clean_slate_rtts) / 1000
 
-online_throughputs_avg = avg_jagged_2d_array(online_throughputs)
-online_rtts_avg = avg_jagged_2d_array(online_rtts)
+online_throughputs_avg = avg_jagged_2d_array(online_throughputs) / 125000
+online_rtts_avg = avg_jagged_2d_array(online_rtts) / 1000
+
+# tcp_throughputs_avg = np.average(tcp_throughputs[0])# / 125000
+# tcp_rtts_avg = np.average(tcp_rtts[0]) / 1000
+#
+# clean_slate_throughputs_avg = avg_jagged_2d_array(clean_slate_throughputs)# / 125000
+# clean_slate_rtts_avg = avg_jagged_2d_array(clean_slate_rtts) / 1000
+#
+# online_throughputs_avg = np.average(online_throughputs[0])# / 125000
+# online_rtts_avg = np.average(online_rtts[0]) / 1000
 
 # Averaged Normalized Throughput over Averaged Normalized Delay
 plt.clf()
-plt.scatter(tcp_throughputs_avg, tcp_rtts_avg, c='b', label='TCP Cubic')
-plt.scatter(clean_slate_throughputs_avg, clean_slate_rtts_avg, c='r', label='Clean Slate')
-plt.scatter(online_throughputs_avg, online_rtts_avg, c='g', label='Online')
-plt.xlabel('Averaged Normalized Delay')
-plt.ylabel('Averaged Normalized Throughput')
-plt.title('Delay over Throughput for 3 CC models')
+plt.scatter(tcp_rtts_avg, tcp_throughputs_avg, c='b', label='TCP Cubic')
+# plt.scatter(clean_slate_throughputs_avg, clean_slate_rtts_avg, c='r', label='Clean Slate')
+plt.scatter(online_rtts_avg, online_throughputs_avg, c='g', label='Online')
+plt.xlabel('Averaged Delay (ms)')
+plt.ylabel('Averaged Throughput (Mbps)')
+plt.title('Delay over Throughput for 2 CC models')
 plt.legend()
-plt.savefig('./graphs/throughput_delay.png')
+plt.margins(0.5)
+plt.savefig('./graphs/throughput_delay.png', bbox_inches="tight")
