@@ -199,7 +199,7 @@ try:
 		elif i >= 95:
 			throughputs_online.append(cur_throughputs_online)
 			rtts_online.append(cur_rtts_online)
-		# avg_rewards.append(reward_sum / reward_counter)
+		avg_rewards.append(reward_sum / reward_counter)
 		throughputs_2d.append(curr_throughput)
 		actions_2d.append(curr_action)
 		rewards_2d.append(curr_reward)

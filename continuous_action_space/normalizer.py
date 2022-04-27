@@ -1,4 +1,5 @@
 # Code borrowed from Orca repository
+# https://github.com/soheil-ab/orca
 import numpy as np
 class Normalizer():
 	def __init__(self, S_DIM):

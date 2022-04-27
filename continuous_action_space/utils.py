@@ -3,6 +3,7 @@ import torch
 import shutil
 import torch.autograd as Variable
 
+# TCP Cubic
 def TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight):
 	if (cWnd < ssThresh) and (segmentsAcked >= 1): # slow start
 		new_cWnd = cWnd + segmentSize

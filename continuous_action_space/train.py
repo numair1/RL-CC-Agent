@@ -1,3 +1,5 @@
+# code borrowed from Aurora PCC GitHub
+# https://github.com/PCCproject/PCC-RL
 from __future__ import division
 import torch
 import torch.nn as nn
