@@ -1,5 +1,4 @@
-# code borrowed from Aurora PCC GitHub
-# https://github.com/PCCproject/PCC-RL
+# Code taken from https://github.com/vy007vikas/PyTorch-ActorCriticRL
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
