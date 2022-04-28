@@ -79,7 +79,7 @@ main (int argc, char *argv[])
 {
   // LogComponentEnable ("Pool", LOG_LEVEL_ALL);
   uint32_t nLeaf = 1;
-  std::string transport_prot = "ns3::TcpWestwoodPlus";
+  std::string transport_prot = "ns3::TcpRlTimeBased";
   double error_p = 0.0;
   std::string bottleneck_bandwidth = "2Mbps";
   std::string bottleneck_delay = "5ms";
