@@ -1,9 +1,10 @@
+# Code taken from https://github.com/vy007vikas/PyTorch-ActorCriticRL
 import numpy as np
 import torch
 import shutil
 import torch.autograd as Variable
 
-# TCP Cubic
+# TCP New Reno
 def TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight):
 	if (cWnd < ssThresh) and (segmentsAcked >= 1): # slow start
 		new_cWnd = cWnd + segmentSize
