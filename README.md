@@ -1,3 +1,8 @@
+# Online Reinforcement Learning For Congestion Control
+
+This is the repository that contains the code for our project on utilizing Reinforcement Learning (RL) to develop congrestion control algoeithms. The approach we utilize is inspired by a previous approach called Orca (https://github.com/Soheil-ab/Orca) that combines the fine grained control of existing TCP CC algorithms with the flexibility of coarse grained RL algorithms. We extend this approach by turning this into an online algorithm, i.e. the corase grained RL agent continues to learn even after it has been deployed. We hopes this would allow for a congestion control algorithm that would better generalize to unseen network conditions. 
+
+
 Here are the instructions to reproduce our results. We performed our experiments on a Ubuntu 20.04 system with Python 3.8. We provide setup instructions that we use. First, we must install the following dependencies:
 
 1. NS3 - We followed the instructions outlined here: https://karimmd.github.io/post/tutorial/ns3_installation/
