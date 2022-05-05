@@ -38,19 +38,17 @@ exp.run(show_output=0)
 ram = buffer.MemoryBuffer(MAX_BUFFER)
 trainer = train.Trainer(S_DIM, A_DIM, A_MAX, ram)
 
-avg_rewards = []  # a list of average reward per episode
-throughputs = []  # a list of throughputs
-actions = []
-standardizer = normalizer.Normalizer(S_DIM)
+throughputs_train = []
+actions_train = []
+rewards_train = []
 
-throughputs_2d = []
-actions_2d = []
-rewards_2d = []
+throughputs_cs = []
+actions_cs = []
+rewards_cs = []
 
-throughputs_online = []  # a list of throughputs
-rtts_online = []
-throughputs_clean = []  # a list of throughputs
-rtts_clean = []
+throughputs_online = []
+actions_online = []
+rewards_online = []
 try:
 	for i in range(MAX_EPISODES):
 		print("EPISODE: ", i)
@@ -68,14 +66,18 @@ try:
 		reward_sum = 0.0
 		unnormalized_state = []
 
-		cur_throughputs_online = []  # a list of throughputs
-		cur_rtts_online = []
-		cur_throughputs_clean = []  # a list of throughputs
-		cur_rtts_clean = []
+		cur_throughputs_train = []
+		cur_actions_train = []
+		cur_rewards_train = []
 
-		curr_throughput = []
-		curr_reward = []
-		curr_action = []
+		cur_throughputs_cs = []
+		cur_actions_cs = []
+		cur_rewards_cs = []
+
+		cur_throughputs_online = []
+		cur_actions_online = []
+		cur_rewards_online = []
+		
 		j = 0
 		while not var.isFinish():
 			with var as data:
@@ -91,9 +93,7 @@ try:
 
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 
-				if i <= 89:
-					throughputs.append(throughput)
-					curr_throughput.append(throughput)
+				if i <= 89: # training
 					standardizer.observe(observation)
 					standardized_observation = standardizer.normalize(observation)
 					if throughput == 0:
@@ -105,9 +105,6 @@ try:
 					standardizer.observe_reward(reward)
 					standardized_reward = standardizer.normalize_reward(reward)
 
-					reward_counter += 1
-					reward_sum += standardized_reward
-					curr_reward.append(reward)
 					new_state = np.float32(standardized_observation)
 					if len(state) != 0:  # len(state) == 0 on first iteration of while loop
 						if new_cWnd != observation[0]:
@@ -120,89 +117,98 @@ try:
 					state = new_state
 					unnormalized_state = observation
 					action = trainer.get_exploration_action(state)
-					actions.append(action)
-					curr_action.append(action)
 					new_cWnd = int((2**action)*cWnd)
 					new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
 
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
-
+					
+					cur_throughputs_train.append(throughput)
+					cur_actions_train.append(action)
+					cur_rewards_train.append(standardized_reward)
+					
 				elif i > 89 and i < 95: # clean slate
-					cur_throughputs_clean.append(throughput)
-					if rtt > 0:
-						cur_rtts_clean.append(rtt)
-
 					observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 					standardizer.observe(observation)
 					standardized_observation = standardizer.normalize(observation)
 					standardized_observation = np.float32(standardized_observation)
 
 					if throughput == 0:
-						continue
-					action = trainer.get_exploration_action(standardized_observation)
+						action = 0.0
+						reward = -observation[0]  # cWnd
+					else:
+						action = trainer.get_exploration_action(standardized_observation)
+						reward = throughput / rtt
+						
+					standardizer.observe_reward(reward)
+					standardized_reward = standardizer.normalize_reward(reward)
+					
 					new_cWnd = int((2**action)*cWnd)
 					new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
 
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
 
+					cur_throughputs_cs.append(throughput)
+					cur_actions_cs.append(action)
+					cur_rewards_cs.append(standardized_reward)
+					
 				elif i >= 95:  # online
 					if j % 5 != 0 and j > 20:  # TCP is supposed to act
 						if throughput != 0:
 							assert segmentsAcked > 0
 							new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
-							throughputs.append(throughput)
-							actions.append(new_cWnd)
+							
+							action = min(max(math.log2(new_cWnd/cWnd), -2.0), 2.0)
+							
 							data.act.new_cWnd = new_cWnd
 							data.act.new_ssThresh = new_ssThresh
-						continue
-
-					throughputs.append(throughput)
-					standardizer.observe(observation)
-					standardized_observation = standardizer.normalize(observation)
-					if throughput == 0:
-						standardized_observation[-1] = 50.0  # some very large rtt
-						reward = -observation[0]  # cWnd
+						else:
+							action = 0.0
 					else:
-						reward = throughput / rtt
+						standardizer.observe(observation)
+						standardized_observation = standardizer.normalize(observation)
+						if throughput == 0:
+							standardized_observation[-1] = 50.0  # some very large rtt
+							reward = -observation[0]  # cWnd
+						else:
+							reward = throughput / rtt
 
-					standardizer.observe_reward(reward)
-					standardized_reward = standardizer.normalize_reward(reward)
+						standardizer.observe_reward(reward)
+						standardized_reward = standardizer.normalize_reward(reward)
 
-					reward_counter += 1
-					reward_sum += standardized_reward
-					new_state = np.float32(standardized_observation)
-					if len(state) != 0:  # len(state) == 0 on first iteration of while loop
-						if new_cWnd != observation[0]:
-							action = math.log2(observation[0] / unnormalized_state[0])
-							action = np.asarray([action])
-						ram.add(state, action, standardized_reward, new_state)
-						trainer.optimize()
+						new_state = np.float32(standardized_observation)
+						if len(state) != 0:  # len(state) == 0 on first iteration of while loop
+							if new_cWnd != observation[0]:
+								action = math.log2(observation[0] / unnormalized_state[0])
+								action = np.asarray([action])
+							ram.add(state, action, standardized_reward, new_state)
+							trainer.optimize()
 
-					state = new_state
-					unnormalized_state = observation
-					action = trainer.get_exploration_action(state)
-					actions.append(action)
-					new_cWnd = int((2**action)*cWnd)
-					new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
+						state = new_state
+						unnormalized_state = observation
+						action = trainer.get_exploration_action(state)
+						new_cWnd = int((2**action)*cWnd)
+						new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
 
+						data.act.new_cWnd = new_cWnd
+						data.act.new_ssThresh = new_ssThresh
+						
 					cur_throughputs_online.append(throughput)
-					if rtt > 0:
-						cur_rtts_online.append(rtt)
-
-					data.act.new_cWnd = new_cWnd
-					data.act.new_ssThresh = new_ssThresh
-		if i > 89 and i < 95:
-			throughputs_clean.append(cur_throughputs_clean)
-			rtts_clean.append(cur_rtts_clean)
-		elif i >= 95:
+					cur_actions_online.append(action)
+					cur_rewards_online.append(standardized_reward)
+		if i <= 89:  # training
+			throughputs_train.append(cur_throughputs_train)
+			actions_train.append(cur_actions_train)
+			rewards_train.append(cur_rewards_train)
+		elif i > 89 and i < 95:  # clean slate
+			throughputs_cs.append(cur_throughputs_cs)
+			actions_cs.append(cur_actions_cs)
+			rewards_cs.append(cur_rewards_cs)
+		else: #  i >= 95:  # online
 			throughputs_online.append(cur_throughputs_online)
-			rtts_online.append(cur_rtts_online)
-		avg_rewards.append(reward_sum / reward_counter)
-		throughputs_2d.append(curr_throughput)
-		actions_2d.append(curr_action)
-		rewards_2d.append(curr_reward)
+			actions_online.append(cur_actions_online)
+			rewards_online.append(cur_rewards_online)
 		# check memory consumption and clear memory
 		gc.collect()
 	trainer.save_models(MAX_EPISODES)
@@ -210,20 +216,16 @@ except KeyboardInterrupt:
 	exp.kill()
 	del exp
 
-with open('./data/clean_slate/throughputs.pickle', 'wb') as fh:
-    pkl.dump(throughputs_clean, fh)
-with open('./data/clean_slate/rtts.pickle', 'wb') as fh:
-    pkl.dump(rtts_clean, fh)
-with open('./data/online/throughputs.pickle', 'wb') as fh:
-    pkl.dump(throughputs_online, fh)
-with open('./data/online/rtts.pickle', 'wb') as fh:
-    pkl.dump(rtts_online, fh)
+np.save('./data/throughputs_train', throughputs_train)
+np.save('./data/actions_train', actions_train)
+np.save('./data/rewards_train', rewards_train)
 
-if args.result:
-	graph.graph_avg_rewards(avg_rewards)
-	graph.graph_throughputs(throughputs)
-	graph.graph_actions(actions)
-	np.save('reward_2d', rewards_2d)
-	np.save('actions_2d', actions_2d)
-	np.save('throughputs_2d', throughputs_2d)
+np.save('./data/throughputs_cs', throughputs_cs)
+np.save('./data/actions_cs', actions_cs)
+np.save('./data/rewards_cs', rewards_cs)
+
+np.save('./data/throughputs_online', throughputs_online)
+np.save('./data/actions_online', actions_online)
+np.save('./data/rewards_online', rewards_online)
+
 print('Completed episodes')
