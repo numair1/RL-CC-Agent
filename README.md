@@ -27,7 +27,7 @@ git clone https://github.com/hust-diangroup/ns3-ai.git
 cd ../
 ./waf configure
 ./waf
-cd ns-allinone-3.33/ns-3.33/ns3-ai/py_interface
+cd ns-allinone-3.33/ns-3.33/contrib/ns3-ai/py_interface
 pip3 install . --user
 ```
 3. Relevant python packages
