@@ -85,6 +85,7 @@ try:
 				if not data:
 					break
 				j += 1
+				print(j)
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
