@@ -19,7 +19,7 @@ parser.add_argument('--result', action='store_true', help='whether output figure
 args = parser.parse_args()
 
 # Set up parameters for NN training
-MAX_EPISODES = 10
+MAX_EPISODES = 100
 MAX_STEPS = 1000
 MAX_BUFFER = 100000
 MAX_TOTAL_REWARD = 300
@@ -56,7 +56,7 @@ try:
 		exp.reset()
 		Init(1234, 4096)
 		var = Ns3AIRL(1234, rlesc.TcpRlEnv, rlesc.TcpRlAct)
-		if i > 8:
+		if i > 89:
 			ns3Settings = {'bottleneck_bandwidth': "2Mbps", 'bottleneck_delay': "5ms"}
 			pro = exp.run(setting = ns3Settings, show_output=False)
 		else:
@@ -85,7 +85,6 @@ try:
 				if not data:
 					break
 				j += 1
-				print(j)
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
@@ -95,7 +94,7 @@ try:
 
 				observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 
-				if i <= 8: # training
+				if i <= 89: # training
 					standardizer.observe(observation)
 					standardized_observation = standardizer.normalize(observation)
 					if throughput == 0:
@@ -130,7 +129,7 @@ try:
 
 					cur_rewards_train.append(standardized_reward)
 
-				elif i > 8 and i < 9: # clean slate
+				elif i > 89 and i < 95: # clean slate
 					observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 					standardizer.observe(observation)
 					standardized_observation = standardizer.normalize(observation)
@@ -156,10 +155,9 @@ try:
 					cur_actions_cs.append(action)
 					cur_rewards_cs.append(standardized_reward)
 
-				elif i >= 9:  # online
+				elif i >= 95:  # online
 					if j % 5 != 0 and j > 20:  # TCP is supposed to act
 						if throughput != 0:
-							assert segmentsAcked > 0
 							new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
 
 							action = min(max(math.log2(new_cWnd/cWnd), -2.0), 2.0)
@@ -200,11 +198,11 @@ try:
 					cur_throughputs_online.append(throughput)
 					cur_actions_online.append(action)
 					cur_rewards_online.append(standardized_reward)
-		if i <= 8:  # training
+		if i <= 89:  # training
 			throughputs_train.append(cur_throughputs_train)
 			actions_train.append(cur_actions_train)
 			rewards_train.append(cur_rewards_train)
-		elif i > 8 and i < 9:  # clean slate
+		elif i > 89 and i < 95:  # clean slate
 			throughputs_cs.append(cur_throughputs_cs)
 			actions_cs.append(cur_actions_cs)
 			rewards_cs.append(cur_rewards_cs)
