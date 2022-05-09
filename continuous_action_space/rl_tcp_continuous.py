@@ -49,6 +49,7 @@ rewards_cs = []
 throughputs_online = []
 actions_online = []
 rewards_online = []
+standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(MAX_EPISODES):
 		print("EPISODE: ", i)
