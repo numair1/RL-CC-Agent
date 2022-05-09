@@ -77,7 +77,7 @@ try:
 		cur_throughputs_online = []
 		cur_actions_online = []
 		cur_rewards_online = []
-		
+
 		j = 0
 		while not var.isFinish():
 			with var as data:
@@ -108,11 +108,14 @@ try:
 					new_state = np.float32(standardized_observation)
 					if len(state) != 0:  # len(state) == 0 on first iteration of while loop
 						if new_cWnd != observation[0]:
-							action = math.log2(observation[0] / unnormalized_state[0])
-							action = np.asarray([action])
-						ram.add(state, action, standardized_reward, new_state)
-						if ram.len > 512:
-							trainer.optimize()
+							if observation[0] != 0 and unnormalized_state[0] != 0:
+								action = math.log2(observation[0] / unnormalized_state[0])
+								action = np.asarray([action])
+								ram.add(state, action, standardized_reward, new_state)
+								cur_throughputs_train.append(throughput)
+								cur_actions_train.append(action)
+								if ram.len > 512:
+									trainer.optimize()
 
 					state = new_state
 					unnormalized_state = observation
@@ -122,11 +125,9 @@ try:
 
 					data.act.new_cWnd = new_cWnd
 					data.act.new_ssThresh = new_ssThresh
-					
-					cur_throughputs_train.append(throughput)
-					cur_actions_train.append(action)
+
 					cur_rewards_train.append(standardized_reward)
-					
+
 				elif i > 89 and i < 95: # clean slate
 					observation = [cWnd, segmentsAcked, bytesInFlight, throughput, rtt]
 					standardizer.observe(observation)
@@ -139,10 +140,10 @@ try:
 					else:
 						action = trainer.get_exploration_action(standardized_observation)
 						reward = throughput / rtt
-						
+
 					standardizer.observe_reward(reward)
 					standardized_reward = standardizer.normalize_reward(reward)
-					
+
 					new_cWnd = int((2**action)*cWnd)
 					new_ssThresh = int(max(2 * segmentSize, bytesInFlight / 2))
 
@@ -152,15 +153,15 @@ try:
 					cur_throughputs_cs.append(throughput)
 					cur_actions_cs.append(action)
 					cur_rewards_cs.append(standardized_reward)
-					
+
 				elif i >= 95:  # online
 					if j % 5 != 0 and j > 20:  # TCP is supposed to act
 						if throughput != 0:
 							assert segmentsAcked > 0
 							new_cWnd, new_ssThresh = utils.TCP(cWnd, ssThresh, segmentsAcked, segmentSize, bytesInFlight)
-							
+
 							action = min(max(math.log2(new_cWnd/cWnd), -2.0), 2.0)
-							
+
 							data.act.new_cWnd = new_cWnd
 							data.act.new_ssThresh = new_ssThresh
 						else:
@@ -193,7 +194,7 @@ try:
 
 						data.act.new_cWnd = new_cWnd
 						data.act.new_ssThresh = new_ssThresh
-						
+
 					cur_throughputs_online.append(throughput)
 					cur_actions_online.append(action)
 					cur_rewards_online.append(standardized_reward)
