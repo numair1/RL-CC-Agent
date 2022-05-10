@@ -7,10 +7,8 @@ import argparse
 import RL_env_setup_continuous as rlesc
 import normalizer
 import utils
-import graph
 import math
 import torch
-import pickle as pkl
 
 torch.manual_seed(2)
 # Parse relevant command line arguments
@@ -217,16 +215,25 @@ except KeyboardInterrupt:
 	exp.kill()
 	del exp
 
-np.save('./data/throughputs_train', throughputs_train)
-np.save('./data/actions_train', actions_train)
-np.save('./data/rewards_train', rewards_train)
+with open('./data/throughputs_train', 'wb') as fh:
+    pickle.dump(throughputs_train, fh)
+with open('./data/actions_train', 'wb') as fh:
+    pickle.dump(actions_train, fh)
+with open('./data/rewards_train', 'wb') as fh:
+    pickle.dump(rewards_train, fh)
 
-np.save('./data/throughputs_cs', throughputs_cs)
-np.save('./data/actions_cs', actions_cs)
-np.save('./data/rewards_cs', rewards_cs)
+with open('./data/throughputs_cs', 'wb') as fh:
+    pickle.dump(throughputs_cs, fh)
+with open('./data/actions_cs', 'wb') as fh:
+    pickle.dump(actions_cs, fh)
+with open('./data/rewards_cs', 'wb') as fh:
+    pickle.dump(rewards_cs, fh)
 
-np.save('./data/throughputs_online', throughputs_online)
-np.save('./data/actions_online', actions_online)
-np.save('./data/rewards_online', rewards_online)
+with open('./data/throughputs_online', 'wb') as fh:
+    pickle.dump(throughputs_online, fh)
+with open('./data/actions_online', 'wb') as fh:
+    pickle.dump(actions_online, fh)
+with open('./data/rewards_online', 'wb') as fh:
+    pickle.dump(rewards_online, fh)
 
 print('Completed episodes')
