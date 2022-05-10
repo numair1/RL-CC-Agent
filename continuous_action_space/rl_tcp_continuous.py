@@ -3,18 +3,14 @@ import gc
 import train
 import buffer
 from py_interface import *
-import argparse
 import RL_env_setup_continuous as rlesc
 import normalizer
 import utils
 import math
 import torch
+import pickle
 
 torch.manual_seed(2)
-# Parse relevant command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--result', action='store_true', help='whether output figures')
-args = parser.parse_args()
 
 # Set up parameters for NN training
 MAX_EPISODES = 100
@@ -47,6 +43,8 @@ rewards_cs = []
 throughputs_online = []
 actions_online = []
 rewards_online = []
+
+rtts_online = []
 standardizer = normalizer.Normalizer(S_DIM)
 try:
 	for i in range(MAX_EPISODES):
@@ -77,12 +75,15 @@ try:
 		cur_actions_online = []
 		cur_rewards_online = []
 
+		cur_rtts_online = []
+
 		j = 0
 		while not var.isFinish():
 			with var as data:
 				if not data:
 					break
 				j += 1
+				print(j)
 				# these 2 are unused by our RLL algorithm but used for TCP
 				ssThresh, segmentSize = data.env.ssThresh, data.env.segmentSize
 
@@ -196,6 +197,7 @@ try:
 					cur_throughputs_online.append(throughput)
 					cur_actions_online.append(action)
 					cur_rewards_online.append(standardized_reward)
+					cur_rtts_online.append(rtt)
 		if i <= 89:  # training
 			throughputs_train.append(cur_throughputs_train)
 			actions_train.append(cur_actions_train)
@@ -208,6 +210,7 @@ try:
 			throughputs_online.append(cur_throughputs_online)
 			actions_online.append(cur_actions_online)
 			rewards_online.append(cur_rewards_online)
+			rtts_online.append(cur_rtts_online)
 		# check memory consumption and clear memory
 		gc.collect()
 	trainer.save_models(MAX_EPISODES)
@@ -215,25 +218,28 @@ except KeyboardInterrupt:
 	exp.kill()
 	del exp
 
-with open('./data/throughputs_train', 'wb') as fh:
+with open('./data/throughputs_train.pkl', 'wb') as fh:
     pickle.dump(throughputs_train, fh)
-with open('./data/actions_train', 'wb') as fh:
+with open('./data/actions_train.pkl', 'wb') as fh:
     pickle.dump(actions_train, fh)
-with open('./data/rewards_train', 'wb') as fh:
+with open('./data/rewards_train.pkl', 'wb') as fh:
     pickle.dump(rewards_train, fh)
 
-with open('./data/throughputs_cs', 'wb') as fh:
+with open('./data/throughputs_cs.pkl', 'wb') as fh:
     pickle.dump(throughputs_cs, fh)
-with open('./data/actions_cs', 'wb') as fh:
+with open('./data/actions_cs.pkl', 'wb') as fh:
     pickle.dump(actions_cs, fh)
-with open('./data/rewards_cs', 'wb') as fh:
+with open('./data/rewards_cs.pkl', 'wb') as fh:
     pickle.dump(rewards_cs, fh)
 
-with open('./data/throughputs_online', 'wb') as fh:
+with open('./data/throughputs_online.pkl', 'wb') as fh:
     pickle.dump(throughputs_online, fh)
-with open('./data/actions_online', 'wb') as fh:
+with open('./data/actions_online.pkl', 'wb') as fh:
     pickle.dump(actions_online, fh)
-with open('./data/rewards_online', 'wb') as fh:
+with open('./data/rewards_online.pkl', 'wb') as fh:
     pickle.dump(rewards_online, fh)
+
+with open('./data/rtts_online.pkl', 'wb') as fh:
+    pickle.dump(rtts_online, fh)
 
 print('Completed episodes')

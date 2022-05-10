@@ -1,14 +1,7 @@
 from py_interface import *
-import argparse
 import RL_env_setup_continuous as rlesc
 import utils
-import graph
 import pickle as pkl
-
-# Parse relevant command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--result', action='store_true', help='whether output figures')
-args = parser.parse_args()
 
 # Set up parameters for NN training
 MAX_EPISODES = 5
@@ -53,11 +46,9 @@ except KeyboardInterrupt:
 	exp.kill()
 	del exp
 
-with open('./data/TCP/throughputs.pickle', 'wb') as fh:
+with open('./data/throughputs_tcp.pkl', 'wb') as fh:
     pkl.dump(throughputs, fh)
-with open('./data/TCP/rtts.pickle', 'wb') as fh:
+with open('./data/rtts_tcp.pkl', 'wb') as fh:
     pkl.dump(rtts, fh)
 
-if args.result:
-	graph.graph_throughputs(throughputs)
 print('Completed episodes')
